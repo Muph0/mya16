@@ -1,0 +1,89 @@
+jmp cmd_fibbo_end
+cmd_fibbo_exe:
+call PUSHSTATE
+xor bx, bx
+mov cx, 1
+mov bp, 0
+cmd_fibbo_exe_start:
+mov ax, bx
+call PRINT_AX
+mov ah, endl
+int 1
+add bx, cx
+mov dx, cx
+mov cx, bx
+mov bx, dx
+
+cmp rm, bp
+je cmd_fibbo_exe_start
+
+call POPSTATE
+ret
+
+#string cmd_shutdown_msg "Shutting down"
+cmd_shutdown_exe:
+  mov adr, cmd_shutdown_msg
+  call WRITE
+  mov ah, '.'
+  mov bx, 10   ; cycles to sleep
+  call SLEEP
+  int 1
+  call SLEEP
+  int 1
+  call SLEEP
+  int 1
+  call SLEEP
+  ; clear screen
+  mov ah, 12
+  int 1
+  ; shut down
+  mov ah, 0
+  int 0xffff
+ret
+
+
+cmd_motd_exe:
+  mov adr, cmd_motd
+  call WRITE
+ret
+
+#string cmd_help_head "List of commands:\n"
+#string cmd_help_hyphen " - "
+
+cmd_help_exe:
+  call PUSHSTATE
+  mov adr, cmd_help_head        ; vypiseme cmd_help_head
+  call WRITE
+  mov adr, os_cmdlist           ; nacteme zacatek seznamu do adr
+  mov bp, os_cmdlistend         ;         konec seznamu do adr
+  mov ah, endl                  ;         konec radku do ah
+    cmd_help_loop:
+    iadd adr, 2                 ; ve stringu preskocime jmp command
+    call WRITE                  ; vypiseme command
+    push adr                    ; push aktualni adresy
+    mov adr, cmd_help_hyphen    ; vypsani pomlcky
+    call WRITE
+    pop adr                     ; pop aktualni adresy
+    iadd adr, 3                 ; ve stringu preskocime jmp command - v tomto pripade 3 slova
+    call WRITE                  ; vypiseme popis commandu
+    int 1                       ; zalomeni radku - v ah je porad endl
+    iadd adr, 1                 ; skok na zacatek jmp
+    cmp adr, bp                 ; zjistime jestli nejsme na konci seznamu
+    jl cmd_help_loop            ; pokud ne, opakujeme
+  call POPSTATE
+ret
+
+
+cmd_clrscrn_exe:
+call PUSHSTATE
+mov ah, 12
+int 1
+call POPSTATE
+ret
+
+                  
+
+
+
+
+cmd_fibbo_end:

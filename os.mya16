@@ -1,0 +1,96 @@
+#include "bios"
+
+
+mov ah, '\c'
+int 1
+
+jmp os_boot
+
+#include "exe"
+#string os_bootmsg "/*********** WELCOME to Blue-os v0.1 ************\\\n"
+#string os_cmdin_msg "> "
+#string os_nosuchcmd_msg "' - no such command.\n"
+
+os_cmdlist:
+#string cmd_clrscrn "clear"
+#string cmd_clrscrn_desc "Clears screen."
+#string cmd_help "help"
+#string cmd_help_desc "Prints commands and their usage."
+#string cmd_motd "motd"
+#string cmd_motd_desc "Prints message of the day."
+#string cmd_fibbo "fibo"
+#string cmd_fibbo_desc "Prints all Fibbonacci numbers\n       less than 2^16."
+#string cmd_shutdown "shutdown"
+#string cmd_shutdown_desc "Shuts down OS."
+os_cmdlistend:
+
+
+jmp os_cmdin
+cmd_fibbo_run:
+call cmd_fibbo_exe
+jmp os_cmdin
+cmd_shutdown_run:
+call cmd_shutdown_exe
+jmp os_cmdin
+cmd_motd_run:
+call cmd_motd_exe
+jmp os_cmdin
+cmd_clrscrn_run:
+call cmd_clrscrn_exe
+jmp os_cmdin
+cmd_help_run:
+call cmd_help_exe
+jmp os_cmdin
+os_boot:
+
+mov adr, os_bootmsg
+call WRITE
+
+os_cmdin:
+mov adr, os_cmdin_msg
+call WRITE
+call READLN
+
+  mov bx, READLN_STACK
+  xor cl, cl
+
+  mov ax, cmd_shutdown
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_shutdown_run
+
+  mov ax, cmd_help
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_help_run
+  
+  mov ax, cmd_motd
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_motd_run
+  
+  mov ax, cmd_fibbo
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_fibbo_run
+  
+  mov ax, cmd_clrscrn
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_clrscrn_run
+
+mov bh, [READLN_STACK]
+mov bl, 3
+cmp bh, bl
+je os_cmdin
+
+mov ah, '\''
+int 1
+mov adr, READLN_STACK
+call WRITE
+mov adr, os_nosuchcmd_msg
+call WRITE
+
+jmp os_cmdin
+
+

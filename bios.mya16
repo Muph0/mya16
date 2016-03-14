@@ -1,0 +1,252 @@
+;
+;   Basic Input/Output system for MYA16. by Jan Kytka on 4th Feb 2016
+;   This file contains some basic functions, such as
+;
+;       PUSHSTATE() - pushes all registers on stack for further use
+;       POPSTATE() - pops all registers back from stack
+;
+;       PRINT_AX(ax) - prints 16-bit integer stored in ax register in decimal numeral system
+;       PRINT32_ABX(ax, bx) - prints 32-bit integer stored in ax, bx (HI, LO)
+;
+
+mov sp, 0xF000
+jmp BOOT
+                     ; length = 40
+#string READLN_STACK "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PUSHSTATE:
+
+push ax
+push bx
+push cx
+push dx
+
+push bp
+push adr
+push rm
+
+ret
+
+POPSTATE:
+
+pop rm
+pop adr
+pop bp
+
+pop dx
+pop cx
+pop bx
+pop ax
+
+ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PRINT32_ABX:    ; prints 32-bit number located in ax and bx registers
+
+call PUSHSTATE
+
+mov ch, 10
+mov cl, 48      ; numbers offset
+xor bp, bp
+xor adr, adr
+
+PRINT32_ABX_top:
+
+    mov rm, ax  ; prepare the upper byte for division
+    rdiv bx, ch ; divide RM<<16 + BX by 10
+    mov dl, rm  ; remainder is 0-9 > move it to dl
+    div ax, ch  ; divide ax by 10
+
+    add dl, cl  ; shift the digit to the correct ASCII position
+    push dl     ; push the digit on the stack
+    iadd adr, 1 ; increase number of digits
+
+    mov dx, ax  ; OR ax and bx together in dx
+    or dx, bx
+    cmp dx, bp  ; if at least one byte is not zero do another division cycle
+    jne PRINT32_ABX_top
+
+
+PRINT32_ABX_poptop:
+    pop ah       ; pop the first digit from stack
+    int 1        ; print it out
+    isub adr, 1  ; adr stores number of characters left to print out
+    cmp adr, bp  ; check if adr > zero - if so, do another print cycle
+    jg PRINT32_ABX_poptop
+
+call POPSTATE
+
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PRINT_AX:        ; prints value of ax in decimal
+call PUSHSTATE
+
+xor bx, bx
+xor bp, bp
+mov bl, 10
+mov cl, 48      ; numbers offset
+
+PRINT_AX_top:
+
+    div ax, bl
+    mov ch, rm
+    add ch, cl
+    push ch
+    iadd bp, 1
+    cmp bh, ax
+    jne PRINT_AX_top
+
+    xor bx, bx
+
+PRINT_AX_poptop:
+    pop ah       ; pop the first digit from stack
+    int 1        ; print it out
+    isub bp, 1  ; bp stores number of characters left to print out
+    cmp bp, bx  ; check if bp > zero - if so, do another print cycle
+    jg PRINT_AX_poptop
+
+call POPSTATE
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+WRITE_adr: and ah, ah
+WRITE:        ; WRITE(adr) function
+
+call PUSHSTATE
+
+	li bh, 0x03
+	mov bp, adr
+
+	write_top:
+		load ah, adr
+
+		cmp ah, bh
+		je write_ret
+        int 1
+		iadd adr, 1
+	jmp write_top
+
+	write_ret:
+	sub bp, adr
+    inor bp, 0
+	iadd bp, 1
+
+mov [WRITE_adr], adr
+call POPSTATE
+mov adr, [WRITE_adr]
+
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+READLN:         ; reads user input and saves it in READLN_STACK
+  call PUSHSTATE
+  mov bp, sp
+  mov sp, READLN_STACK
+  xor ax, ax
+
+readln_charIn:
+    mov ah, 1   ; dont write the character directly
+    int 2       ; read from keyboard buffer (to AL register)
+    mov dx, sp
+
+    xor cl, cl  ; if char == 0
+    cmp cl, al  ; jump back
+    je readln_charIn
+
+    ;; CHECK FOR BACKSPACE
+    mov cl, 8 ;; backspace = 8
+    cmp cl, al ; al == 8 ?
+    jne readln_not_backspace
+    pop cl      ; pop char from READLN_STACK
+    mov dx, sp
+    mov ah, al
+    int 1       ; print backspace and repeat charIn
+    jmp readln_charIn
+
+readln_not_backspace:
+
+    ;; CHECK FOR STACK OVERFLOW
+    mov cx, READLN_STACK
+    iadd cx, 40  ; calculate the end of READLN_STACK
+    cmp sp, cx  ; if sp is greater or equal than the end of READLN_STACK
+    jge readln_charIn ; then do nothing
+
+    ;; CHECK FOR ENTER (CarriageReturn or NewLine)
+    ; NL
+    mov cl, endl
+    cmp cl, al    ; compare al with NL
+    je readln_enter
+    ; CR
+    mov cl, cret
+    cmp cl, al    ; compare al with CR
+    je readln_enter
+
+    mov ah, al
+    push ah
+    mov dx, sp
+    int 1
+    jmp readln_charIn
+
+readln_enter:
+  mov ah, 3 ; string terminator
+  push ah
+  mov ah, endl
+  int 1
+  mov sp, bp
+  call POPSTATE
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+STR_EQUAL:             ; STR_EQUAL function (ax, bx)
+                       ; returns AL 0 or 1
+  call PUSHSTATE
+  mov ch, 1
+  mov dh, 3
+
+str_equal_top:
+  mov cl, [ax]  ; load characters into cl, dl
+  mov dl, [bx]
+  add ax, ch    ; increment pointers to strings
+  add bx, ch
+
+  cmp cl, dl    ; if not equal, return 0
+  jne str_equal_false
+
+  cmp cl, dh    ; if char != 3, goto top; else return true
+  jne str_equal_top
+
+  call POPSTATE
+  mov al, 1
+ret
+str_equal_false:
+  call POPSTATE
+  xor al, al
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PRINTF:                   ; PRINTF function (ax)
+
+
+	#string printf_exp "x"
+	#string printf_whole "x"
+	#string printf_str "xxx.xxx.xxx.xxxx"
+
+	istore printf_whole, ax
+
+
+
+
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SLEEP:                     ; SLEEP function (bx)
+  push dx
+  xor dx, dx
+  sleep_top:
+  iadd dx, 1
+  cmp bx, dx
+  jg sleep_top
+  pop dx
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#string BIOS_BOOTMSG "\cBIOS booted successfully\n"
+
+BOOT:
+
+li adr, BIOS_BOOTMSG
+call WRITE
