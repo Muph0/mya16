@@ -1,2 +1,2 @@
 # mya16
-Assembly dialect for my cpu architecture
+Basic operating system written in Assembly dialect for my cpu architecture
