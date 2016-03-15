@@ -1,5 +1,4 @@
 #string priklad "(1+455)*3-1"
-
 mov bl, 0
 ; bl = typ tokenu
 ; 0 - nic
@@ -19,10 +18,10 @@ mov ah, 57          ;
 cmp al, ah          ;
 jg not_digit        ;
 
-; digit definitely
-isub al, 48
-mov dx, al
-mov bl, 1
+isub al, 48         ; definitely a digit
+mov dx, al          ;
+mov bl, 1           ;         
+
 
 loop_digit:
 mov al, [adr]
@@ -63,10 +62,31 @@ je operator_div    ;  Pokud ano, skok na operator_div
 
 jmp not_operator   ; Pokud neni zakladni operator, skoci na not_operator
 
-operator_mul:
-operator_add:
-operator_sub:
-operator_div:
+operator_mul:      ; priorita 3
+pop ah             ; popne posledni OP ze stacku ke kontrole priorit
+cmp al, ah         ; kontrola
+je mul_push        ; pokud je znak stejne priority, provede se mul_push
+
+mov bl, '/'        ; dalsi kontrola priority
+cmp bl, ah         ; kontrola
+je mul_push        ; pokud je znak stejne priority, provede se mul_push
+
+push ah            ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
+push al            ; a pushne se k nemu novy OP
+jmp end_token      ; konec tokenu
+
+mul_push:          ; popnuti znaku na OPstacku (nyni v ah) do outputu
+                   ; a nasledne pushnuti aktualniho tokenu na OPstack
+
+
+jmp end_token      ; konec tokenu
+
+
+operator_add:      ; priorita 2
+
+operator_sub:      ; priorita 2
+
+operator_div:      ; priorita 3
 
 
 not_operator:
