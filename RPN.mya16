@@ -1,0 +1,85 @@
+#string priklad "(1+455)*3-1"
+
+mov bl, 0
+; bl = typ tokenu
+; 0 - nic
+; 1 - cislo
+; 2 - operator
+
+mov adr, priklad
+loop:               ;zacatek cteni inputu
+mov al, [adr]       ;prvni znak vlozen do al registeru
+iadd adr, 1         ;posunuti na dalsi znak
+
+mov ah, 48          ; Pokud je znak <48 nebo >57, neni cislo
+cmp al, ah          ;
+jl not_digit        ;
+                    ;
+mov ah, 57          ;
+cmp al, ah          ;
+jg not_digit        ;
+
+; digit definitely
+isub al, 48
+mov dx, al
+mov bl, 1
+
+loop_digit:
+mov al, [adr]
+
+mov ah, 48          
+cmp al, ah          ; pokud je znak mensi nez 48, konci cislo
+jl end_token        ; ergo konec tokenu
+
+mov ah, 57          
+cmp al, ah          ; pokud je znak vetsi nez 57, konci cislo
+jg end_token        ; ergo konec tokenu
+
+isub al, 48         ; subtract ASCII bias
+iadd adr, 1         ; posunuti o znak dale
+
+mul dx, 10          ; vynasobeni predchoziho cisla desiti
+add dx, al          ; pricteni nove cifry k predchozimu cislu
+jmp loop_digit
+
+
+not_digit:
+
+mov ah, '*'        ;  Hvezdicka do ah registru
+cmp al, ah         ;  Kontrola, jestli je znak hvezdicka
+je operator_mul    ;  Pokud ano, skok na operator_mul
+
+mov ah, '+'        ;  Plus do ah registru
+cmp al, ah         ;  Kontrola, jestli je znak plus
+je operator_add    ;  Pokud ano, skok na operator_add
+
+mov ah, '-'        ;  Minus do ah registru
+cmp al, ah         ;  Kontrola, jestli je znak minus
+je operator_sub    ;  Pokud ano, skok na operator_sub
+
+mov ah, '/'        ;  Lomitko do ah registru
+cmp al, ah         ;  Kontrola, jestli je znak lomitko
+je operator_div    ;  Pokud ano, skok na operator_div
+
+jmp not_operator   ; Pokud neni zakladni operator, skoci na not_operator
+
+operator_mul:
+operator_add:
+operator_sub:
+operator_div:
+
+
+not_operator:
+
+mov ah, 40
+cmp al, ah
+je parenthesis_left
+
+mov ah, 41
+cmp al, ah
+je parenthesis_right
+
+parenthesis_left:
+parenthesis_right:
+
+end_token:

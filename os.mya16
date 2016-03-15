@@ -63,7 +63,7 @@ call READLN
   call STR_EQUAL
   cmp cl, al
   jne cmd_help_run
-  
+                                                                                                                                                                     
   mov ax, cmd_motd
   call STR_EQUAL
   cmp cl, al
