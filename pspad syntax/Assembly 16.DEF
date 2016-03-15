@@ -1,0 +1,25 @@
+[iload | <reg>, (imm)]
+iload
+[istore | (imm), <reg>]
+istore
+[load | <reg>, (reg)]
+load
+[store | (reg), <reg>]
+store
+[li | <reg>, <imm>]
+li
+[int | <imm>]
+int
+[cmp | <reg>, <reg>]
+cmp
+[mov | <reg>, <reg>]
+mov
+[call | (imm)]
+call
+[ret | 0]
+ret
+[#string | <str>]
+#string pointer ""
+[#include | <str>]
+#include ""
+[#32 | <reg>, <reg>, <imm>]
