@@ -1,0 +1,6 @@
+﻿***************************************************
+- Kompilátor ignoruje, pokud je ve zdrojovém kódu definováno více stringů se stejným ukazatelem
+
+
+
+***************************************************

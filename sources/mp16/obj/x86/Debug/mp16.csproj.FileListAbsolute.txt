@@ -1,0 +1,5 @@
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16\bin\Debug\mp16.exe
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16\bin\Debug\mp16.pdb
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16\obj\x86\Debug\mp16.exe
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16\obj\x86\Debug\mp16.pdb
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16\obj\x86\Debug\mp16.csprojResolveAssemblyReference.cache

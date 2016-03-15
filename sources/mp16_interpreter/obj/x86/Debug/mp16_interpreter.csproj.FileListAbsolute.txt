@@ -1,0 +1,7 @@
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\obj\x86\Debug\mp16_interpreter.csprojResolveAssemblyReference.cache
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\bin\Debug\mp16_interpreter.exe
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\bin\Debug\mp16_interpreter.pdb
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\bin\Debug\mp16.exe
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\bin\Debug\mp16.pdb
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\obj\x86\Debug\mp16_interpreter.exe
+C:\Users\Honky\Documents\Visual Studio 2010\Projects\project_fwi\mp16_interpreter\obj\x86\Debug\mp16_interpreter.pdb
