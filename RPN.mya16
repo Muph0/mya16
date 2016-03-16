@@ -1,14 +1,20 @@
 #string priklad "(1+455)*3-1"
+;                   *+,-./
+#string precedence "320203"
 mov bl, 0
 ; bl = typ tokenu
 ; 0 - nic
 ; 1 - cislo
-; 2 - operator
+; 2 - operator    -  42:  *+,-./
+; 3 - paranteses  -  40=left 41=right
+
+; dx = hodnota tokenu
+
 
 mov adr, priklad
 loop:               ;zacatek cteni inputu
 mov al, [adr]       ;prvni znak vlozen do al registeru
-iadd adr, 1         ;posunuti na dalsi znak
+add adr, 1         ;posunuti na dalsi znak
 
 mov ah, 48          ; Pokud je znak <48 nebo >57, neni cislo
 cmp al, ah          ;
@@ -18,20 +24,19 @@ mov ah, 57          ;
 cmp al, ah          ;
 jg not_digit        ;
 
-isub al, 48         ; definitely a digit
+sub al, 48          ; definitely a digit
 mov dx, al          ;
 mov bl, 1           ;         
 
 
 loop_digit:
+
 mov al, [adr]
-
-mov ah, 48          
-cmp al, ah          ; pokud je znak mensi nez 48, konci cislo
+          
+cmp al, 48          ; pokud je znak mensi nez 48, konci cislo
 jl end_token        ; ergo konec tokenu
-
-mov ah, 57          
-cmp al, ah          ; pokud je znak vetsi nez 57, konci cislo
+          
+cmp al, 57          ; pokud je znak vetsi nez 57, konci cislo
 jg end_token        ; ergo konec tokenu
 
 isub al, 48         ; subtract ASCII bias
@@ -44,62 +49,67 @@ jmp loop_digit
 
 not_digit:
 
-mov ah, '*'        ;  Hvezdicka do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak hvezdicka
-je operator_mul    ;  Pokud ano, skok na operator_mul
 
-mov ah, '+'        ;  Plus do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak plus
-je operator_add    ;  Pokud ano, skok na operator_add
+cmp al, '+'
+je yes_operator
+cmp al, '-'
+je yes_operator
+cmp al, '*'
+je yes_operator
+cmp al, '/'
+je yes_operator
 
-mov ah, '-'        ;  Minus do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak minus
-je operator_sub    ;  Pokud ano, skok na operator_sub
+jmp not_operator
 
-mov ah, '/'        ;  Lomitko do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak lomitko
-je operator_div    ;  Pokud ano, skok na operator_div
-
-jmp not_operator   ; Pokud neni zakladni operator, skoci na not_operator
-
-operator_mul:      ; priorita 3
-pop ah             ; popne posledni OP ze stacku ke kontrole priorit
-cmp al, ah         ; kontrola
-je mul_push        ; pokud je znak stejne priority, provede se mul_push
-
-mov bl, '/'        ; dalsi kontrola priority
-cmp bl, ah         ; kontrola
-je mul_push        ; pokud je znak stejne priority, provede se mul_push
-
-push ah            ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
-push al            ; a pushne se k nemu novy OP
-jmp end_token      ; konec tokenu
-
-mul_push:          ; popnuti znaku na OPstacku (nyni v ah) do outputu
-                   ; a nasledne pushnuti aktualniho tokenu na OPstack
-
-
-jmp end_token      ; konec tokenu
-
-
-operator_add:      ; priorita 2
-
-operator_sub:      ; priorita 2
-
-operator_div:      ; priorita 3
-
+yes_operator:
+mov bl, 2
+mov dx, al
 
 not_operator:
+                
+cmp al, '('
+je yes_parantheses
+cmp al, ')'
+je yes_parantheses
 
-mov ah, 40
-cmp al, ah
-je parenthesis_left
+jmp not_parantheses
 
-mov ah, 41
-cmp al, ah
-je parenthesis_right
+yes_parantheses:
+mov bl, 3
+mov dx, al
+jmp end_token
+not_parantheses:
 
-parenthesis_left:
-parenthesis_right:
+mov ah, '!'
+exclamation_mark:
+int 1
+jmp exclamation_mark
 
 end_token:
+
+
+
+
+
+
+
+;; S NADHLEDEM!
+operator_mul_div:   ; priorita 3
+sub sp, 1
+mov ah, [sp]        ; popne posledni OP ze stacku ke kontrole priorit
+add sp, 1    
+cmp ah, '*'         ; kontrola
+je mul_push         ; pokud je znak stejne priority, provede se mul_push
+
+cmp ah, '/'         ; kontrola
+je mul_push         ; pokud je znak stejne priority, provede se mul_push
+
+push ah             ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
+push al             ; a pushne se k nemu novy OP
+jmp end_token       ; konec tokenu
+
+
+
+
+
+
