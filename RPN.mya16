@@ -1,17 +1,28 @@
+jmp program
 #string priklad "(1+455)*3-1"
+and ah, ah
+op_stack:
+#string opstack "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+op_stack_end:
+mov bl, 0 ; bl = typ tokenu
+mov bh, opstack ; bh = op_stack pointer
 
-mov bl, 0
-; bl = typ tokenu
 ; 0 - nic
-; 1 - èíslo
-; 2 - operátor
+; 1 - cislo
+; 2 - operator    -  42:  *+,-./
+; 3 - paranteses  -  40=left 41=right
+; dx = hodnota tokenu
+
+;;;;;;;;;;;;;;;; ZACATEK ALGORITMU ;;;;;;;;;;;;;;;;;;;
+ 
+program:
 
 mov adr, priklad
-loop:               ;zaèátek ètení inputu
-mov al, [adr]       ;první znak vložen do al registeru
-iadd adr, 1         ;posunutí na další znak
+loop:               ;zacatek cteni inputu
+mov al, [adr]       ;prvni znak vlozen do al registeru
+add adr, 1          ;posunuti na dalsi znak
 
-mov ah, 48          ; Pokud je znak <48 nebo >57, není èíslo
+mov ah, 48          ; Pokud je znak <48 nebo >57, neni cislo
 cmp al, ah          ;
 jl not_digit        ;
                     ;
@@ -19,67 +30,177 @@ mov ah, 57          ;
 cmp al, ah          ;
 jg not_digit        ;
 
-; digit definitely
-isub al, 48
-mov dx, al
-mov bl, 1
+sub al, 48          ; definitely a digit
+mov dx, al          ;
+mov bl, 1           ;         
+
+
+;;;;;;;;;;;;;;;;; TOKENIZACE CISEL ;;;;;;;;;;;;;;;;;;;
 
 loop_digit:
+
 mov al, [adr]
-
-mov ah, 48          
-cmp al, ah          ; pokud je znak menší než 48, konèí èíslo
+          
+cmp al, 48          ; pokud je znak mensi nez 48, konci cislo
 jl end_token        ; ergo konec tokenu
-
-mov ah, 57          
-cmp al, ah          ; pokud je znak vìtší než 57, konèí èíslo
+          
+cmp al, 57          ; pokud je znak vetsi nez 57, konci cislo
 jg end_token        ; ergo konec tokenu
 
 isub al, 48         ; subtract ASCII bias
-iadd adr, 1         ; posunutí o znak dále
+iadd adr, 1         ; posunuti o znak dale
 
-mul dx, 10          ; vynásobení pøedchozího èísla desíti
-add dx, al          ; pøiètení nové cifry k pøedchozímu èíslu
+mul dx, 10          ; vynasobeni predchoziho cisla desiti
+add dx, al          ; pricteni nove cifry k predchozimu cislu
 jmp loop_digit
 
+;;;;;;;;;;;;;;; TOKENIZACE OPERATORU ;;;;;;;;;;;;;;;;;
 
 not_digit:
 
-mov ah, '*'        ;  Hvìzdièka do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak hvìzdièka
-je operator_mul    ;  Pokud ano, skok na operator_mul
 
-mov ah, '+'        ;  Plus do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak
-je operator_add    ;  Pokud ano, skok na operator_add
+cmp al, '+'
+je yes_operator
+cmp al, '-'
+je yes_operator
+cmp al, '*'
+je yes_operator
+cmp al, '/'
+je yes_operator
 
-mov ah, '-'        ;  Minus do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak
-je operator_sub    ;  Pokud ano, skok na operator_sub
+jmp not_operator
 
-mov ah, '/'        ;  Lomítko do ah registru
-cmp al, ah         ;  Kontrola, jestli je znak
-je operator_div    ;  Pokud ano, skok na operator_div
-
-jmp not_operator   ; Pokud není základní operátor, skoèí na not_operator
-
-operator_mul:
-operator_add:
-operator_sub:
-operator_div:
-
-
+yes_operator:
+mov bl, 2
+mov dx, al
+jmp end_token
 not_operator:
+                
+cmp al, '('
+je yes_parenthesis
+cmp al, ')'
+je yes_parenthesis
 
-mov ah, 40
-cmp al, ah
-je parenthesis_left
+jmp not_parenthesis
 
-mov ah, 41
-cmp al, ah
-je parenthesis_right
+;;;;;;;;;;;;;;;; TOKENIZACE ZAVOREK ;;;;;;;;;;;;;;;;;;
 
-parenthesis_left:
-parenthesis_right:
+yes_parenthesis:
+mov bl, 3
+mov dx, al
+jmp end_token
+not_parenthesis:
+
+error:
+mov ah, '!'
+error_loop:
+int 1
+jmp error_loop
+  
 
 end_token:
+cmp bl, 1               ; pokud je cislo, je jiz hotovo
+je push_token           ;  =====> push do output stacku
+cmp bl, 2               ; pokud je operator, zacne zpracovavat precedenci
+je process_operator     ; 
+cmp bl, 3               ; pokud je zavorka, zacne hledat
+je process_parenthesis  ; druhou zavorku v operator stacku, resp. pushne se na operator stack
+jmp error
+
+;;;;;;;;;;;;;;;;;;;;; OPERATORY ;;;;;;;;;;;;;;;;;;;;;;
+
+process_operator:    ; urceni precedence operatoru a nasledne zpracovani podle hodnoty
+cmp dx, '+'
+je precedence_2_token
+cmp dx, '-'
+je precedence_2_token
+cmp dx, '*'          
+je precedence_3_token          
+cmp dx, '/'
+je precedence_3_token  ; precedence TOKENU je v !ah! registru
+
+operator_loop:       
+jmp op_stack_read      ; priprava k porovnani s poslednim operatorem na operator stacku
+cmp ch, '+'
+je precedence_2_stack
+cmp ch, '-'
+je precedence_2_stack
+cmp ch, '*'
+je precedence_3_stack
+cmp ch, '/'
+je precedence_3_stack  ; precedence POSLEDNI OPERATORU NA OPERATOR STACKU je v !ch! registu
+
+cmp dx, ch             ; porovnavani precedenci
+jg  op_stack_push      ; pokud je precedence tokenu vetsi, pushne token na stack a zacne
+jmp loop               ; zpracovavat novy token
+ 
+precedence_2_token:
+mov ah, 2
+ret
+precedence_3_token:
+mov ah, 3
+ret
+precedence_2_stack:
+mov ch, 2
+ret
+precedence_3_stack:    
+mov ch, 3
+ret
+
+;;;;;;;;;;;;;;;;;;;;;; ZAVORKY ;;;;;;;;;;;;;;;;;;;;;;;
+ 
+process_parenthesis: ; zpracovani soucasne zavorky a operator stacku
+cmp dx, 40           ; pokud je zavorka leva, pushne se na operator stack
+je op_stack_push     
+cmp dx, 40           ; a hned pote se zacne zpracovavat novy token 
+je loop                    
+parenthesis_find:    ; zavorka je 100% prava a v operator stacku se zacina hledat leva zavorka 
+jmp op_stack_pop
+cmp dx, 40           ; pokud se najde leva zavorka, obe zavorky se zahodi (al registr bude hned po jumpu prepsan novym tokenem)
+je loop
+push dx              ; pokud ne, prave popnuty operator se pushne na output stack 
+jmp parenthesis_find
+
+;;;;;;;;;;;;;;;;;;; PUSH TOKENU ;;;;;;;;;;;;;;;;;;;;;;
+ 
+push_token:          ; pushnuti jiz zpracovaneho tokenu na output stack
+push dx
+jmp loop
+
+;;;;;;;;;;;;;;;;;; KONEC ALGORITMU ;;;;;;;;;;;;;;;;;;;
+
+op_stack_push:       ; pushne token na operator stack
+mov [bh], dx
+add bh, 1
+ret
+op_stack_pop:        ; popne token z operator stacku
+sub bh, 1            
+mov dx, [bh]
+ret
+op_stack_read:       ; precte posledni token na operator stacku
+mov al, [bh]
+ret
+
+
+
+
+
+
+
+
+
+
+;; S NADHLEDEM!
+operator_mul_div:   ; priorita 3
+sub sp, 1
+mov ah, [sp]        ; popne posledni OP ze stacku ke kontrole priorit
+add sp, 1    
+cmp ah, '*'         ; kontrola
+je mul_push         ; pokud je znak stejne priority, provede se mul_push
+
+cmp ah, '/'         ; kontrola
+je mul_push         ; pokud je znak stejne priority, provede se mul_push
+
+push ah             ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
+push al             ; a pushne se k nemu novy OP
+jmp end_token       ; konec tokenu
