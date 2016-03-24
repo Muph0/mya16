@@ -189,18 +189,3 @@ ret
 
 
 
-
-;; S NADHLEDEM!
-operator_mul_div:   ; priorita 3
-sub sp, 1
-mov ah, [sp]        ; popne posledni OP ze stacku ke kontrole priorit
-add sp, 1    
-cmp ah, '*'         ; kontrola
-je mul_push         ; pokud je znak stejne priority, provede se mul_push
-
-cmp ah, '/'         ; kontrola
-je mul_push         ; pokud je znak stejne priority, provede se mul_push
-
-push ah             ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
-push al             ; a pushne se k nemu novy OP
-jmp end_token       ; konec tokenu
