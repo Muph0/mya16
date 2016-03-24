@@ -74,16 +74,16 @@ yes_operator:
 mov bl, 2
 mov dx, al
 jmp end_token
-not_operator:
-                
+
+;;;;;;;;;;;;;;; TOKENIZACE ZAVOREK ;;;;;;;;;;;;;;;;;;
+
+not_operator:                
 cmp al, '('
 je yes_parenthesis
 cmp al, ')'
 je yes_parenthesis
 
 jmp not_parenthesis
-
-;;;;;;;;;;;;;;;; TOKENIZACE ZAVOREK ;;;;;;;;;;;;;;;;;;
 
 yes_parenthesis:
 mov bl, 3
@@ -97,6 +97,7 @@ error_loop:
 int 1
 jmp error_loop
   
+;;;;;;;;;;;;;;;; ZPRACOVANI TOKENU ;;;;;;;;;;;;;;;;;;
 
 end_token:
 cmp bl, 1               ; pokud je cislo, je jiz hotovo
@@ -130,11 +131,23 @@ je precedence_3_stack
 cmp ch, '/'
 je precedence_3_stack  ; precedence POSLEDNI OPERATORU NA OPERATOR STACKU je v !ch! registu
 
-cmp dx, ch             ; porovnavani precedenci
-jg  op_stack_push      ; pokud je precedence tokenu vetsi, pushne token na stack a zacne
-jmp loop               ; zpracovavat novy token
- 
-precedence_2_token:
+cmp dx, ch                ; porovnavani precedenci
+jg  precedence_greater
+cmp dx, ch
+je  precedence_equal_less
+cmp dx, ch
+jl  precedence_equal_less
+
+
+precedence_greater:    ; pokud je precedence tokenu vetsi, pushne token na  operator stack a zacne
+jmp op_stack_push      ; zpracovavat novy token
+jmp loop
+precedence_equal_less: ; pokud je precedence tokenu rovna nebo mensi, token na operator stacku se popne                       
+sub bh, 1              ; nasledne se pushne na output stack a zkontroluje se precedence dalsiho operatoru
+mov cl, [bh]
+push cl
+jmp operator_loop 
+precedence_2_token:    
 mov ah, 2
 ret
 precedence_3_token:
@@ -180,27 +193,3 @@ ret
 op_stack_read:       ; precte posledni token na operator stacku
 mov al, [bh]
 ret
-
-
-
-
-
-
-
-
-
-
-;; S NADHLEDEM!
-operator_mul_div:   ; priorita 3
-sub sp, 1
-mov ah, [sp]        ; popne posledni OP ze stacku ke kontrole priorit
-add sp, 1    
-cmp ah, '*'         ; kontrola
-je mul_push         ; pokud je znak stejne priority, provede se mul_push
-
-cmp ah, '/'         ; kontrola
-je mul_push         ; pokud je znak stejne priority, provede se mul_push
-
-push ah             ; pokud neni stejne nebo vyssi priority, kontrolovany OP se vrati 
-push al             ; a pushne se k nemu novy OP
-jmp end_token       ; konec tokenu
