@@ -20,6 +20,8 @@ os_cmdlist:
 #string cmd_motd_desc "Prints message of the day."
 #string cmd_fibbo "fibo"
 #string cmd_fibbo_desc "Prints all Fibbonacci numbers\n       less than 2^16."
+#string cmd_shunt_yard "shuntyard"
+#string cmd_shunt_yard_desc "Parses mathematical expression\n            from infix notation into Reversed\n             Polish Notation."
 #string cmd_shutdown "shutdown"
 #string cmd_shutdown_desc "Shuts down OS."
 os_cmdlistend:
@@ -28,6 +30,9 @@ os_cmdlistend:
 jmp os_cmdin
 cmd_fibbo_run:
 call cmd_fibbo_exe
+jmp os_cmdin
+cmd_shunt_yard_run:
+call cmd_shunt_yard_exe
 jmp os_cmdin
 cmd_shutdown_run:
 call cmd_shutdown_exe
@@ -78,6 +83,11 @@ call READLN
   call STR_EQUAL
   cmp cl, al
   jne cmd_clrscrn_run
+  
+  mov ax, cmd_shunt_yard
+  call STR_EQUAL
+  cmp cl, al
+  jne cmd_shunt_yard_run
 
 mov bh, [READLN_STACK]
 mov bl, 3
