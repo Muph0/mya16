@@ -155,6 +155,8 @@ readln_charIn:
     mov cl, 8 ;; backspace = 8
     cmp cl, al ; al == 8 ?
     jne readln_not_backspace
+    cmp sp, READLN_STACK
+    jle readln_charIn 
     pop cl      ; pop char from READLN_STACK
     mov dx, sp
     mov ah, al
