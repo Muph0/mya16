@@ -7,7 +7,7 @@ int 1
 jmp os_boot
 
 #include "exe"
-#string os_bootmsg "/*********** WELCOME to Blue-os v0.1 ************\\\n"
+#string os_bootmsg "/*********** WELCOME to Blue-os v0.1 ************\\Type 'help'.\n\n"
 #string os_cmdin_msg "> "
 #string os_nosuchcmd_msg "' - no such command.\n"
 
@@ -20,8 +20,8 @@ os_cmdlist:
 #string cmd_motd_desc "Prints message of the day."
 #string cmd_fibbo "fibo"
 #string cmd_fibbo_desc "Prints all Fibbonacci numbers\n       less than 2^16."
-#string cmd_shunt_yard "shuntyard"
-#string cmd_shunt_yard_desc "Parses mathematical expression\n            from infix notation into Reversed\n             Polish Notation."
+#string cmd_rpn "rpn"
+#string cmd_rpn_desc "Parses mathematical expressions\n       from infix notation into Reversed Polish\n       Notation and calculates the result."
 #string cmd_shutdown "shutdown"
 #string cmd_shutdown_desc "Shuts down OS."
 os_cmdlistend:
@@ -31,8 +31,8 @@ jmp os_cmdin
 cmd_fibbo_run:
 call cmd_fibbo_exe
 jmp os_cmdin
-cmd_shunt_yard_run:
-call cmd_shunt_yard_exe
+cmd_rpn_run:
+call cmd_rpn_exe
 jmp os_cmdin
 cmd_shutdown_run:
 call cmd_shutdown_exe
@@ -84,10 +84,10 @@ call READLN
   cmp cl, al
   jne cmd_clrscrn_run
   
-  mov ax, cmd_shunt_yard
+  mov ax, cmd_rpn
   call STR_EQUAL
   cmp cl, al
-  jne cmd_shunt_yard_run
+  jne cmd_rpn_run
 
 mov bh, [READLN_STACK]
 mov bl, 3

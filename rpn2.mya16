@@ -1,0 +1,300 @@
+#require "os.mya16"
+
+
+
+
+#string cmd_rpn_queue "   4   8  12  16  20  24  28  32  36  40  44  48  52  56  60"
+cmd_rpn_queue_end:
+and ah, ah
+#string cmd_rpn_msg "Enter an expression:\nops: +-*/%()\n> "
+#string cmd_rpn_precedence "xxxx5xx9954x4x5"
+cmd_rpn_opstack_bottom:
+and ah, ah
+cmd_rpn_total:
+and ah, ah
+
+cmd_rpn_exe:
+
+  push ax
+  push bx
+  push cx
+  push dx   
+  push adr
+  
+  mov ax, 0
+  mov bx, cmd_rpn_queue 
+cmd_rpn_prepnull:
+  mov [bx], ax
+  add bx, 1
+  cmp bx, cmd_rpn_queue_end
+  jl cmd_rpn_prepnull
+
+  mov adr, cmd_rpn_msg
+  call WRITE
+  call READLN
+  mov adr, READLN_STACK
+
+  mov bp, cmd_rpn_queue
+  ; bh = cmd_rpn_queue pointer
+  
+  mov [cmd_rpn_opstack_bottom], sp
+              
+  ; bl = typ tokenu
+  ; 0 - nic
+  ; 1 - cislo
+  ; 2 - operator    -  42:*+,-./
+  ; 3 - zavorka  -  7=left 8=right   
+  ; dx = hodnota tokenu
+
+; tokenize first
+cmd_rpn_token_loop:
+    xor dx, dx
+
+    mov al, [adr]
+    add adr, 1          ;posunuti na dalsi znak
+
+    cmp al, 3
+    je cmd_rpn_endl
+
+    cmp al, 48          ; Pokud je znak <48 nebo >57, neni cislo
+    jl cmd_rpn_token_not_digit        
+                        ;
+    cmp al, 57          ;
+    jg cmd_rpn_token_not_digit        
+    
+    sub al, 48          ; jednoznacne jde o cislo
+    mov dx, al          ; hodnota tokenu = cislice
+    mov bl, 1           ; typ operatoru = 1 
+
+cmd_rpn_token_loop_digit:  
+        mov al, [adr]
+                  
+        cmp al, 48          ; pokud je znak mensi nez 48, konci cislo
+        jl cmd_rpn_end_token ; => konec tokenu
+                  
+        cmp al, 57          ; pokud je znak vetsi nez 57, konci cislo
+        jg cmd_rpn_end_token ; => konec tokenu
+        
+        sub al, 48         ; subtract ASCII bias
+        add adr, 1         ; posunuti o znak dale
+        
+        mul dx, 10          ; vynasobeni predchoziho cisla desiti
+        add dx, al          ; pricteni nove cifry k predchozimu cislu
+        jmp cmd_rpn_token_loop_digit
+
+cmd_rpn_token_not_digit:
+
+    cmp al, '+'
+    je cmd_rpn_token_operator
+    cmp al, '-'
+    je cmd_rpn_token_operator
+    cmp al, '*'
+    je cmd_rpn_token_operator
+    cmp al, '/'
+    je cmd_rpn_token_operator
+    cmp al, '%'
+    je cmd_rpn_token_operator
+    
+    jmp cmd_rpn_token_not_operator
+
+cmd_rpn_token_operator:  
+        mov bl, 2
+        mov dx, al
+        sub dx, 33
+        jmp cmd_rpn_end_token
+
+cmd_rpn_token_not_operator:
+    
+    cmp al, '('
+    je cmd_rpn_token_parenthesis
+    cmp al, ')'
+    je cmd_rpn_token_parenthesis
+    
+    jmp cmd_rpn_token_parenthesis_not 
+    
+cmd_rpn_token_parenthesis:           
+        mov bl, 3
+        mov dx, al
+        sub dx, 33
+        jmp cmd_rpn_end_token
+
+cmd_rpn_token_parenthesis_not:
+
+; error
+pop adr
+pop dx
+pop cx
+pop bx
+pop ax
+ret
+
+cmd_rpn_end_token:
+
+  
+;; perform the actual SHUNTING-YARD
+
+cmp bl, 1
+je cmd_rpn_shya_number
+cmp bl, 2
+je cmd_rpn_shya_operator
+cmp bl, 3
+je cmd_rpn_shya_paranthesis
+
+cmd_rpn_shya_number:
+    mov [bp], bl  ; token type first
+    add bp, 1     ; increment pointer
+    mov [bp], dx  ; then token value  
+    add bp, 1     ; increment pointer
+    jmp cmd_rpn_token_loop
+  
+cmd_rpn_shya_operator:
+      mov cx, [cmd_rpn_opstack_bottom]
+      cmp sp, cx     ; if the opstack is empty
+      jle cmd_rpn_shya_op_while_end ; end while
+      pop ah         ; peek ah
+      push ah
+      
+      mov al, dx
+      
+      push dx    ; dx needs to be used for precedence calc
+      mov dx, cmd_rpn_precedence
+      add dx, al 
+      mov cl, [dx] ; take the precedence info out of the precedence string  
+      
+      mov dx, cmd_rpn_precedence
+      add dx, ah 
+      mov ch, [dx] ; take the precedence info out of the precedence string    
+      pop dx   ; put dx back to use
+      
+      cmp cl, ch
+      jg cmd_rpn_shya_op_while_end
+    
+        pop ah  
+        mov [bp], bl   ; token type first
+        add bp, 1     ; increment pointer
+        mov [bp], ah  ; then token value  
+        add bp, 1     ; increment pointer
+        jmp cmd_rpn_shya_operator
+    
+    cmd_rpn_shya_op_while_end:
+    push dx
+    jmp cmd_rpn_token_loop
+   
+   
+cmd_rpn_shya_paranthesis:
+    cmp dx, 8 ; )
+    je cmd_rpn_shya_paranthesis_close
+        
+    push dx
+    jmp cmd_rpn_token_loop
+
+cmd_rpn_shya_paranthesis_close:
+    pop ah
+    push ah
+    cmp ah, 7 ; (
+    
+    jne cmd_rpn_shya_paranthesis_pop_ops
+    jmp cmd_rpn_shya_paranthesis_pop
+
+cmd_rpn_shya_paranthesis_pop_ops:
+    pop ah  
+    mov [bp], bl   ; token type first
+    add bp, 1     ; increment pointer
+    mov [bp], ah  ; then token value  
+    add bp, 1     ; increment pointer    
+    jmp cmd_rpn_shya_paranthesis_close   
+    
+cmd_rpn_shya_paranthesis_pop:
+    pop ah
+    jmp cmd_rpn_token_loop
+    
+cmd_rpn_endl:
+      
+    mov cx, [cmd_rpn_opstack_bottom]  
+    cmp sp, cx      
+    je cmd_rpn_eval
+    mov bl, 2
+    
+    pop ah  
+    mov [bp], bl   ; token type first
+    add bp, 1     ; increment pointer
+    mov [bp], ah  ; then token value  
+    add bp, 1     ; increment pointer 
+jmp cmd_rpn_endl
+
+cmd_rpn_eval:
+
+mov bp, cmd_rpn_queue
+
+cmd_rpn_eval_loop:
+mov bl, [bp]
+add bp, 1
+mov dx, [bp]
+add bp, 1
+
+cmp bl, 0
+je cmd_rpn_end
+
+cmp bl, 2
+je cmd_rpn_eval_op
+;else continue
+cmd_rpn_eval_num:
+    push dx
+    jmp cmd_rpn_eval_loop
+
+cmd_rpn_eval_op:
+    mov bl, dx
+    add bl, 33
+    pop dx
+    pop cx
+    
+    cmp bl, '+'
+    je cmd_rpn_eval_add
+    cmp bl, '-'
+    je cmd_rpn_eval_sub
+    cmp bl, '*'
+    je cmd_rpn_eval_mul
+    cmp bl, '/'
+    je cmd_rpn_eval_div
+    cmp bl, '%'
+    je cmd_rpn_eval_mod
+    
+  cmd_rpn_eval_op_push:
+      push cx
+      jmp cmd_rpn_eval_loop
+  
+  cmd_rpn_eval_add:
+  add cx, dx
+  jmp cmd_rpn_eval_op_push
+  
+  cmd_rpn_eval_sub:  
+  sub cx, dx     
+  jmp cmd_rpn_eval_op_push
+  
+  cmd_rpn_eval_mul:
+  mul cx, dx       
+  jmp cmd_rpn_eval_op_push
+  
+  cmd_rpn_eval_div: 
+  div cx, dx      
+  jmp cmd_rpn_eval_op_push
+  
+  cmd_rpn_eval_mod: 
+  div cx, dx
+  mov cx, rm      
+  jmp cmd_rpn_eval_op_push   
+  
+  
+  cmd_rpn_end:
+  pop ax
+  call PRINT_AX
+  mov ah, endl
+  int 1
+ret
+
+pop adr
+pop dx
+pop cx
+pop bx
+pop ax
+ret

@@ -193,8 +193,6 @@ ret
 op_stack_read:       ; precte posledni token na operator stacku
 mov al, [bh]
 ret
-<<<<<<< HEAD
-=======
 
 
 
@@ -204,4 +202,47 @@ ret
 
 
 
->>>>>>> origin/master
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

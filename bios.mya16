@@ -247,6 +247,3 @@ ret
 #string BIOS_BOOTMSG "\cBIOS booted successfully\n"
 
 BOOT:
-
-li adr, BIOS_BOOTMSG
-call WRITE
