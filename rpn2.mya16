@@ -1,12 +1,9 @@
-#require "os.mya16"
-
-
-
 
 #string cmd_rpn_queue "   4   8  12  16  20  24  28  32  36  40  44  48  52  56  60"
 cmd_rpn_queue_end:
 and ah, ah
-#string cmd_rpn_msg "Enter an expression:\nops: +-*/%()\n> "
+#string cmd_rpn_msg "Enter an expression:\nops: +-*/%()\nrpn> "
+#string cmd_rpn_errmsg "ERROR! parsing failed\n"
 #string cmd_rpn_precedence "xxxx5xx9954x4x5"
 cmd_rpn_opstack_bottom:
 and ah, ah
@@ -120,7 +117,12 @@ cmd_rpn_token_parenthesis:
 
 cmd_rpn_token_parenthesis_not:
 
-; error
+
+
+; ERROR!!!!!!!!!!!!!!!!!
+mov adr, cmd_rpn_errmsg
+call WRITE
+
 pop adr
 pop dx
 pop cx
