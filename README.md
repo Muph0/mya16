@@ -21,11 +21,12 @@ You have following options <br>
  4. Then you just start the clock (Ctrl-K) and press the button labeled **I/O**
  5. In order to use your keyboard as an input, you need to **click the keyboard** IC.
 
-**B) Run the emulator** <br>
+**B) Run the interpreter** <br>
 If you are too lazy to run Logisim every time you alter the sources, you can use the `mp16_interpreter.exe`. It executes the `*.bin16` files the same way as the cpu simulation in Logisim would.
 ```
 mp16_interpreter.exe path/to/my/compiled_file.bin16
 ```
+**NOTE:** In order to run the interpreter, the compiler (`mp16.exe`) needs to be located in the same directory.
 
 [1]: http://www.cburch.com/logisim/
 [2]: https://github.com/Muph0/mya16/blob/master/cpu/CPU-16IR.circ
