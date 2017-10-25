@@ -17,7 +17,7 @@ namespace mp16.irs
         {
             List<int> bytes = new List<int>();
 
-            string[] args = str_args.Split(',');
+            string[] args = str_args.Split(' ');
             
             for (int i = 0; i < args.Length; i++) args[i] = args[i].Trim();
             

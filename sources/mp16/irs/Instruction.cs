@@ -61,7 +61,7 @@ namespace mp16.irs
 
                 if (value >= 0x10 && value <= 0x17)
                     type = IRArgsType.Register__Number; //iadd
-                if (value >= 0x00 && value <= 0x07)
+                if (value >= 0x00 && value <= 0x07 || mnem == "cmp")
                     return new Alu(mnem); // add
                 if ((value >= 0x08 && value <= 0x0f) || (value >= 0x18 && value <= 0x1f))
                     type = IRArgsType.Number; // jump
@@ -84,7 +84,7 @@ namespace mp16.irs
 
             if (mnem == "mov") return new Mov();
             if (mnem == "#string") return new PreString();
-            if (mnem == "#def") return new PreDef();
+            //if (mnem == "#def") return new PreDef();
             if (mnem == "pop" || mnem == "push") return new Stack(mnem);
             if (mnem == "#32") return new X32ab();
             if (mnem == "icmp") type = IRArgsType.Register__Number;
@@ -271,16 +271,16 @@ namespace mp16.irs
                 {"xor", 0x06},
                 {"nor", 0x07},
                 {"cmp", 0xe6},
-                {"icmp", 0x20},
 
-                //{"iand", 0x10}, // alu immed
-                //{"isub", 0x11},
-                //{"imul", 0x12},
-                //{"idiv", 0x13},
-                //{"iadd", 0x14},
-                //{"ior",  0x15},
-                //{"ixor", 0x16},
-                //{"inor", 0x17},
+                {"iand", 0x10}, // alu immed
+                {"isub", 0x11},
+                {"imul", 0x12},
+                {"idiv", 0x13},
+                {"iadd", 0x14},
+                {"ior",  0x15},
+                {"ixor", 0x16},
+                {"inor", 0x17},
+                {"icmp", 0x20},
                 
                 //{"rand", 0x20}, // alu rem - takes carry IN
                 {"rsub", 0x21},
@@ -316,7 +316,7 @@ namespace mp16.irs
 
                 {"iload",   0xe0}, // mov family
                 {"istore",  0xe1},
-                {"load",    0xe2},
+                {"load",    0xe2},  
                 {"store",   0xe3},
                 {"li",      0xe4},
                 {"mov",     0xe7},

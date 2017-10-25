@@ -14,14 +14,33 @@ namespace mp16
         //static Stack<int> include_fwd_stack;
         //static Stack<int[]> include_stack;
         static List<int> byteOnLine = new List<int>();
+        static List<string> files_included = new List<string>();
 
         public static string debug_CurrentFilename = "", workingDirectory;
         public static int debug_CurrentLine = -1, fwd_bytes = 0;
 
         public static bool NoError = true, CountingPhase = true, DebugMode = false;
 
+        public static bool TERMINAL_RESIZE_ENABLED = false;
+        static string ext = ".mya16";
+
         static void Main(string[] args)
         {
+#if WINDOWS
+            TERMINAL_ENABLED = true;
+#endif
+
+            try
+            {
+                Console.BufferHeight = Console.BufferHeight;
+                TERMINAL_RESIZE_ENABLED = true;
+            }
+            catch (Exception e)
+            {
+                TERMINAL_RESIZE_ENABLED = false;
+            }
+
+
             Instruction.Init();
             /*
             Console.Write("[");
@@ -45,9 +64,10 @@ namespace mp16
             //include_fwd_stack = new Stack<int>();
             //include_stack = new Stack<int[]>();
 
-            string filename = @"C:\Users\Honky\Documents\Logisim\16-bit\test2.mya16";
+            string filename = @"C:\Users\Honky\Documents\Logisim\16-bit\mya16\os.mya16";
 
-            Console.BufferHeight = 1800;
+            if (TERMINAL_RESIZE_ENABLED)
+                Console.BufferHeight = 1800;
 
             if (args != null && args.Length > 0)
                 filename = args[0];
@@ -63,12 +83,59 @@ namespace mp16
             Identifiers.Add("cret", 0x000d);
             Identifiers.Add("space", 0x0020);
 
-            string source = File.ReadAllText(filename);
-            //source = "mov sp, [STACK]\n" + source;
+            string source = File.ReadAllText(filename).Trim();
+            //source = removeComments(source);
+
+            string firstLine = source.Split('\n')[0].Trim();
+            string cmd = "#require";
+            if (firstLine.IndexOf(cmd) == 0)
+            {
+                firstLine = string.Join(" ", firstLine.Split(' ').Skip(1)).Trim();
+                if ('"' + firstLine.Substring(1, firstLine.Length - 2) + '"' == firstLine)
+                {
+                    try
+                    {
+                        firstLine = Regex.Match(firstLine, "\"(.*)\"").Groups[1].Value;
+                    }
+                    catch
+                    {
+                        PrintError(Error.Arguments(cmd, "<file>"));
+                    }
+                    string file = firstLine;
+
+                    if (!file.Contains('.'))
+                    {
+                        file += ext;
+                    }
+
+                    if (!file.Contains(":\\"))
+                    {
+                        file = workingDirectory + file;
+                    }
+
+                    if (File.Exists(file))
+                    {
+                        if (!files_included.Contains(file))
+                        {
+                            files_included.Add(file);
+                            //string array = "";
+                            //foreach (string s in files_included)
+                            //    array += s + "B; ";
+                            //Console.WriteLine(array);
+                            //Console.ReadLine();
+
+                            string toBeIncluded = removeComments(File.ReadAllText(file)).Trim();
+                            source = ";required \"" + firstLine + "\"\n" + toBeIncluded
+                                  + "\n;end_of_require \"" + firstLine + "\"";
+                            filename = file;
+                        }
+                    }
+                }
+            }
 
 
             List<int> bytes = new List<int>();
-            bytes.AddRange(Compile(source, filename.Split('\\').Last()));
+            bytes.AddRange(Compile(source, filename));
 
             if (NoError)
             {
@@ -82,12 +149,14 @@ namespace mp16
 
         public static void PrintError(Error e)
         {
+            NoError = false;
             if (CountingPhase) return;
 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("Error: '{0}' line {1}: {2}", e.File, e.line + 1, e.Message);
             Console.ResetColor();
-            NoError = false;
+            if (DebugMode)
+                Terminate();
         }
         public static void PrintWarning(Error e)
         {
@@ -112,39 +181,101 @@ namespace mp16
 
             while (true)
             {
-                List<string> files_included = new List<string>();
-                Regex includeRegex = new Regex("\\#include \"(.*)\"", RegexOptions.Compiled);
+                files_included.Add(curr_file);
+                Regex includeRegex = new Regex("\\#include \"(.*)\"");
                 int matches = 0;
                 source = includeRegex.Replace(source, new MatchEvaluator(delegate(Match m)
                   {
                       matches++;
                       string file = m.Groups[1].Value;
 
-                      if (!files_included.Contains(file))
-                      {
-                          files_included.Add(file);
-                      }
-                      else
-                      {
-                          PrintError(new Error() { Message = "'" + file + "' was already included." });
-                          return "";
-                      }
-
-                      string ext = ".mya16";
-                      if (!File.Exists(file) && (file.Length < ext.Length || file.Substring(file.Length - 6) != ext))
+                      if (!file.Contains('.'))
                       {
                           file += ext;
                       }
 
-                      if (!File.Exists(file))
+                      if (!file.Contains(":\\"))
                       {
                           file = workingDirectory + file;
                       }
 
+                      if (!files_included.Contains(file))
+                      {
+                          files_included.Add(file);
+                          //string array = "";
+                          //foreach (string s in files_included)
+                          //    array += s + "; ";
+                          //Console.WriteLine(array);
+                          //Console.ReadLine();
+                      }
+                      else
+                      {
+                          Error e = new Error() { Message = "'" + file + "' has been included already." };
+                          PrintError(e);
+                          return ";error " + e.Message;
+                      }
+
                       if (File.Exists(file))
                       {
-                          string complete = "#included \"" + m.Groups[1].Value + "\" \n" + removeComments(File.ReadAllText(file))
-                              + "\n#end_of_include \"" + m.Groups[1].Value + "\"";
+                          string toBeIncluded = removeComments(File.ReadAllText(file)).Trim();
+                          string firstLine = toBeIncluded.Split('\n')[0].Trim();
+                          string complete = "";
+
+                          string cmd = "#require";
+                          if (firstLine.IndexOf(cmd) == 0)
+                          {
+                              firstLine = string.Join(" ", firstLine.Split(' ').Skip(1)).Trim();
+                              if ('"' + firstLine.Substring(1, firstLine.Length - 2) + '"' == firstLine)
+                              {
+                                  try
+                                  {
+                                      firstLine = Regex.Match(firstLine, "\"(.*)\"").Groups[1].Value;
+                                  }
+                                  catch
+                                  {
+                                      PrintError(Error.Arguments(cmd, "<file>"));
+                                  }
+
+                                  file = firstLine;
+
+                                  if (!file.Contains('.'))
+                                  {
+                                      file += ext;
+                                  }
+
+                                  if (!file.Contains(":\\"))
+                                  {
+                                      file = workingDirectory + file;
+                                  }
+
+                                  if (!files_included.Contains(file))
+                                  {
+                                      files_included.Add(file);
+                                      //string array = "";
+                                      //foreach (string s in files_included)
+                                      //    array += s + "; ";
+                                      //Console.WriteLine(array);
+                                      //Console.ReadLine();
+
+                                      if (File.Exists(file))
+                                      {
+                                          toBeIncluded = removeComments(File.ReadAllText(file)).Trim();
+                                          complete = ";required \"" + firstLine + "\"\n" + toBeIncluded
+                                                + "\n;end_of_require \"" + firstLine + "\"";
+                                          return complete;
+                                      }
+                                      else
+                                      {
+                                          Error e = new Error() { Message = "Required '" + file + "' does not exist." };
+                                          PrintError(e);
+                                          return ";error " + e.Message;
+                                      }
+                                  }
+                              }
+                          }
+
+                          complete = ";included \"" + m.Groups[1].Value + "\" \n" + toBeIncluded
+                               + "\n;end_of_include \"" + m.Groups[1].Value + "\"";
                           return complete;
                       }
 
@@ -249,26 +380,35 @@ namespace mp16
             {
                 string line = lines[line_n].Trim();
                 if (line == "") continue;
-                if (line.Length > 9 && line.Substring(0, 9) == "#included")
+                if (line.IndexOf(";included") == 0 ||
+                    line.IndexOf(";required") == 0 ||
+                    line.IndexOf(";end_of_include") == 0 ||
+                    line.IndexOf(";end_of_require") == 0)
                 {
                     if (DebugMode)
                     {
                         Console.BackgroundColor = ConsoleColor.DarkGreen;
                         Console.WriteLine(line);
                         Console.ResetColor();
+
+                        if (TERMINAL_RESIZE_ENABLED && Console.CursorTop > Console.BufferHeight * 3 / 4)
+                            Console.BufferHeight *= 2;
                     }
                     continue;
-                }//*/
-                if (line.Length > 15 && line.Substring(0, 15) == "#end_of_include")
+                }
+                if (line.Length > 6 && line.Substring(0, 6) == ";error")
                 {
                     if (DebugMode)
                     {
-                        Console.BackgroundColor = ConsoleColor.DarkGreen;
-                        Console.WriteLine(line);
-                        Console.ResetColor();
+                        string msg = string.Join(" ", line.Split(' ').Skip(1));
+                        PrintError(Error.Empty(msg));
                     }
                     continue;
                 }//*/
+                if (line.IndexOf("#require") == 0)
+                {
+                    continue;
+                }
                 debug_CurrentLine = line_n;
                 string mnem = line.Split(' ')[0];           // mnemonic is the first word
                 Instruction ir = Instruction.Get(mnem);     // construct the ir object
@@ -353,7 +493,7 @@ namespace mp16
         private static string removeComments(string s)
         {
             s = s.Replace("\r", "").Replace("\t", "    ");
-            s = Regex.Replace(s, ";.*\n", "\n");
+            s = Regex.Replace(s, ";.*", "");
 
             return s;
         }

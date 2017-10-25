@@ -9,14 +9,25 @@ namespace mp16_interpreter
 {
     class Program
     {
+        public static bool TERMINAL_RESIZE_ENABLED = false;
         static Mobo emulation;
         static void Main(string[] args)
         {
+            try
+            {
+                Console.BufferWidth = Console.BufferWidth;
+                TERMINAL_RESIZE_ENABLED = true;
+            }
+            catch (Exception e)
+            {
+                TERMINAL_RESIZE_ENABLED = false;
+            }
+
             emulation = new Mobo();
             new Thread(delegate() { emulation.readKeys(); }).Start();
 
             if (args.Length == 0)
-                args = new string[] { @"C:\Users\Honky\Documents\Logisim\16-bit\test2.bin16" };
+                args = new string[] { @"C:\Users\Honky\Documents\Logisim\16-bit\mya16\os.bin16" };
             List<string> args_list = args.ToList();
 
             if (args.Length == 1)
@@ -41,9 +52,12 @@ namespace mp16_interpreter
                     }
 
                     Console.BackgroundColor = ConsoleColor.Blue;
-                    Console.WindowWidth = 50;
-                    Console.BufferWidth = 50;
-                    Console.WindowHeight = 12;
+                    if (TERMINAL_RESIZE_ENABLED)
+                    {
+                        Console.WindowWidth = 50;
+                        Console.BufferWidth = 50;
+                        Console.WindowHeight = 12;
+                    }
                     Console.Clear();
                     emulation.run();
                 }

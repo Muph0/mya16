@@ -16,8 +16,8 @@ namespace mp16.irs
         public override int[] Process(string arguments)
         {
             Instruction ir = new Instruction(mnem, IRArgsType.Register__Register);
-            if (Instruction.ParseArguments(arguments, IRArgsType.Register__Number, true) != null)
-                return new Instruction(mnem, IRArgsType.Register__Number).Process(arguments);
+            if (Instruction.ParseArguments(arguments, ir.type, true) == null)
+                return new Instruction("i" + mnem, IRArgsType.Register__Number).Process(arguments);
 
             return ir.Process(arguments);
         }

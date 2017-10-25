@@ -46,9 +46,9 @@ namespace mp16
             return new Error(what + " cannot be declared twice.",
                 Program.debug_CurrentFilename, Program.debug_CurrentLine);
         }
-        public static Error Arguments( string ir,string correct)
+        public static Error Arguments(string ofWhat, string correctSyntax)
         {
-            return new Error("Wrong arguments of " +ir+ ". Syntax: " + correct,
+            return new Error("Wrong arguments of " + ofWhat + ". Syntax: " + ofWhat + " " + correctSyntax,
                 Program.debug_CurrentFilename, Program.debug_CurrentLine);
         }
         public static Error Empty(string content)

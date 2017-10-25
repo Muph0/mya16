@@ -42,6 +42,11 @@ namespace mp16.irs
             {
                 proc_args[i] = proc_args[i].Trim();
                 string arg = proc_args[i];
+                if (arg == "")
+                {
+                    Program.PrintError(Error.InvalidIr("mov " + str_args));
+                    return null;
+                }
 
                 if ('[' + arg.Substring(1, arg.Length - 2) + ']' == arg)
                 {

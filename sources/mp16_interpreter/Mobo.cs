@@ -32,6 +32,15 @@ namespace mp16_interpreter
         private byte dh
         { get { return (byte)getReg("dh"); } }
 
+        private byte al
+        { get { return (byte)getReg("al"); } }
+        private byte bl
+        { get { return (byte)getReg("bl"); } }
+        private byte cl
+        { get { return (byte)getReg("cl"); } }
+        private byte dl
+        { get { return (byte)getReg("dl"); } }
+
         public Dictionary<string, ushort> Registers = new Dictionary<string, ushort>
         {
             {"ax", 0},
@@ -86,7 +95,17 @@ namespace mp16_interpreter
             {
                 byte asc = (byte)getReg("ah");
                 char c = Encoding.ASCII.GetChars(new byte[] { asc })[0];
-                Console.Write(c);
+                if (c == '\b')
+                {
+                    Console.Write(c);
+                    Console.Write(' ');
+                    Console.Write(c);
+                }
+                else
+                {
+                    Console.Write(c);
+                }
+
                 if (asc == 12 || asc == 128)
                     Console.Clear();
             }
@@ -162,9 +181,10 @@ namespace mp16_interpreter
                 }
                 System.Diagnostics.Debug.Print(readlineStack);
 
-                if (pc > 200)
+                if (pc - 1 == 0x281)
                 { }
 
+                string pchex = "0x" + (pc - 1).ToString("x");
                 ushort sregVal = getReg(sreg);
                 ushort dregVal = getReg(dreg);
 

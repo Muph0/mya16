@@ -8,21 +8,32 @@ namespace mp16.irs
     class PreDef : Instruction
     {
         public PreDef()
-            : base ("#def", IRArgsType.Nothing)
+            : base("#var", IRArgsType.Nothing)
         {
 
         }
 
         public override int[] Process(string str_args)
         {
-            int breakchr = 5;
+            string[] args = str_args.Trim().Split(' ');
+            if (args.Length != 2)
+            {
+                Program.PrintError(Error.Arguments("#def", "<pointer> <address>"));
+                return null;
+            }
+
+            string cast = args[0].Trim();
+            int address = -1;
+            if (!int.TryParse(args[1].Trim(), out address))
+            {
+                Program.PrintError(Error.Expected("number", args[1].Trim()));
+            }
 
             if (Program.CountingPhase)
             {
-                string cast = str_args.Substring(0, breakchr);
                 if (!Program.Identifiers.ContainsKey(cast))
                 {
-                    Program.Identifiers.Add(cast, Program.fwd_bytes + 2);
+                    Program.Identifiers.Add(cast, address);
                 }
                 else
                 {

@@ -224,6 +224,9 @@ cmd_rpn_endl:
     add bp, 1     ; increment pointer 
 jmp cmd_rpn_endl
 
+
+; evaluate expression from stack
+
 cmd_rpn_eval:
 
 mov bp, cmd_rpn_queue
